@@ -519,6 +519,8 @@ rk_output irk_guts( functor_type &func, double t0, double t1, const vec_type &y0
 	};
 	std::vector<double> timings(N_TIMING_ENTRIES, 0);
 
+        double capture_dt = 0.1;
+
 	double t = t0;
 	rk_output sol;
 	sol.status = SUCCESS;
@@ -553,14 +555,18 @@ rk_output irk_guts( functor_type &func, double t0, double t1, const vec_type &y0
 
 	vec_type err_est = arma::zeros( y.size() );
 	if (time_internals) timer.tic();
-	sol.t_vals.push_back(t);
-	sol.y_vals.push_back(y);
-	sol.stages.push_back(K_n);
-	sol.err_est.push_back( err_est );
-	sol.err.push_back( 0.0 );
+        //-EDIT--------------------------------------------------------------------------------
+        if (t-t0 - capture_dt * sol.t_vals.size() > capture_dt) {
+	    sol.t_vals.push_back(t);
+	    sol.y_vals.push_back(y);
+	    sol.stages.push_back(K_n);
+	    sol.err_est.push_back( err_est );
+	    sol.err.push_back( 0.0 );
+        }
 	if (time_internals) timings[STORE_SOL] += timer.toc();
 	bool alternative_error_formula = true;
 	std::size_t min_order = std::min( sc.order, sc.order2 );
+        //--------------------------------------------------------------------------------------
 
 
 	// Variables/parameters for Newton iteration:
@@ -776,13 +782,16 @@ rk_output irk_guts( functor_type &func, double t0, double t1, const vec_type &y0
 				timings[UPDATE_Y] += timer.toc();
 				timer.tic();
 			}
-			
-			sol.t_vals.push_back(t);
-			sol.y_vals.push_back(y_n);
-			sol.stages.push_back(K_np);
-			sol.err_est.push_back( err_est );
-			sol.err.push_back( err );
+			//-EDIT--------------------------------------------------------------------------------
+                        if (t-t0 - capture_dt * sol.t_vals.size() > capture_dt) {
+			    sol.t_vals.push_back(t);
+			    sol.y_vals.push_back(y_n);
+			    sol.stages.push_back(K_np);
+			    sol.err_est.push_back( err_est );
+			    sol.err.push_back( err );
+                        }
 			if (time_internals) timings[STORE_SOL] += timer.toc();
+			//-------------------------------------------------------------------------------------
 			
 			alternative_error_formula = false;
 		}
